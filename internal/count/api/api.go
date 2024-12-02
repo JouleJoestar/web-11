@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"web-11/internal/auth/middleware"
 	"web-11/internal/count/usecase"
 
 	"github.com/labstack/echo/v4"
@@ -20,8 +21,8 @@ func NewServer(ip string, port int, use *usecase.Usecase) *Server {
 		Usecase: use,
 	}
 
-	s.Router.GET("/count", s.HandleCount)
-	s.Router.POST("/count", s.HandleCount)
+	s.Router.GET("/count", middleware.JWTMiddleware(s.HandleCount))  // Применяем middleware
+	s.Router.POST("/count", middleware.JWTMiddleware(s.HandleCount)) // Применяем middleware
 
 	return s
 }

@@ -3,9 +3,10 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"web-11/internal/auth/middleware"
+	"web-11/internal/query/usecase"
 
 	"github.com/labstack/echo/v4"
-	"web-11/internal/query/usecase"
 )
 
 type Server struct {
@@ -22,8 +23,8 @@ func NewServer(ip string, port int, uc *usecase.Usecase) *Server {
 		uc:      uc,
 	}
 
-	srv.Router.GET("/api/user", srv.GetUser)
-	srv.Router.POST("/api/user/create", srv.PostUser)
+	srv.Router.GET("/api/user", middleware.JWTMiddleware(srv.GetUser))          // Применяем middleware
+	srv.Router.POST("/api/user/create", middleware.JWTMiddleware(srv.PostUser)) // Применяем middleware
 
 	return srv
 }

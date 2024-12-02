@@ -2,6 +2,8 @@ package api
 
 import (
 	"fmt"
+	"web-11/internal/auth/middleware"
+
 	"github.com/labstack/echo/v4"
 )
 
@@ -21,8 +23,8 @@ func NewServer(ip string, port int, maxSize int, uc Usecase) *Server {
 	}
 
 	api.server = echo.New()
-	api.server.GET("/hello", api.GetHello)
-	api.server.POST("/hello", api.PostHello)
+	api.server.GET("/hello", middleware.JWTMiddleware(api.GetHello))   // Применяем middleware
+	api.server.POST("/hello", middleware.JWTMiddleware(api.PostHello)) // Применяем middleware
 
 	api.address = fmt.Sprintf("%s:%d", ip, port)
 
