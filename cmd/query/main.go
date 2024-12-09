@@ -23,7 +23,7 @@ func main() {
 
 	prv := provider.NewProvider(cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Password, cfg.DB.DBname)
 	use := usecase.NewUsecase("", prv)
-	srv := api.NewServer(cfg.IP, cfg.Port, use)
+	srv := api.NewServer(cfg.IP, cfg.Port, use, "123.456.789")
 
 	log.Printf("Сервер запущен на %s\n", srv.Address)
 	log.Fatal(http.ListenAndServe(srv.Address, srv.Router))

@@ -3,11 +3,15 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"web-11/internal/auth/middleware"
+	"time"
+
 	"web-11/internal/auth/usecase"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 )
+
+var jwtSecret = []byte("123.456.789")
 
 type Server struct {
 	Address string
@@ -23,14 +27,49 @@ func NewServer(ip string, port int, uc *usecase.Usecase) *Server {
 		uc:      uc,
 	}
 
-	// Определяем маршруты
-	srv.Router.POST("/auth/register", srv.Register) // Регистрация (без middleware)
-	srv.Router.POST("/auth/login", srv.Login)       // Логин (без middleware)
+	srv.Router.POST("/auth/register", srv.Register)
+	srv.Router.POST("/auth/login", srv.Login)
 
-	// Применяем JWTMiddleware только к защищенным маршрутам
-	srv.Router.GET("/protected-route", middleware.JWTMiddleware(srv.ProtectedRoute)) // Пример защищенного маршрута
+	srv.Router.GET("/protected-route", srv.JWTMiddleware(srv.ProtectedRoute))
 
 	return srv
+}
+
+// GenerateJWT создает новый JWT-токен для указанного пользователя
+func GenerateJWT(username string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"exp":      time.Now().Add(time.Hour * 72).Unix(), // Токен будет действовать 72 часа
+	})
+
+	tokenString, err := token.SignedString(jwtSecret)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+func (srv *Server) JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tokenString := c.Request().Header.Get("Authorization")
+		if tokenString == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token is required"})
+		}
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, echo.ErrUnauthorized
+			}
+			return jwtSecret, nil
+		})
+
+		if err != nil || !token.Valid {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
+		}
+
+		return next(c)
+	}
 }
 
 func (srv *Server) Register(c echo.Context) error {
@@ -50,7 +89,7 @@ func (srv *Server) Register(c echo.Context) error {
 	}
 
 	// Генерируем JWT-токен для нового пользователя
-	token, err := middleware.GenerateJWT(input.Username) // Генерация токена
+	token, err := GenerateJWT(input.Username) // Генерация токена
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate token"})
 	}

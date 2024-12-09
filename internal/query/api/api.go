@@ -3,29 +3,57 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"web-11/internal/auth/middleware"
+	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 )
 
 type Server struct {
-	Address string
-	Router  *echo.Echo
-	uc      Usecase
+	Address   string
+	Router    *echo.Echo
+	uc        Usecase
+	jwtSecret []byte // Добавляем поле для хранения секрета JWT
 }
 
-func NewServer(ip string, port int, uc Usecase) *Server {
+func NewServer(ip string, port int, uc Usecase, jwtSecret string) *Server {
 	e := echo.New()
 	srv := &Server{
-		Address: fmt.Sprintf("%s:%d", ip, port),
-		Router:  e,
-		uc:      uc,
+		Address:   fmt.Sprintf("%s:%d", ip, port),
+		Router:    e,
+		uc:        uc,
+		jwtSecret: []byte(jwtSecret), // Инициализируем секрет
 	}
 
-	srv.Router.GET("/api/user", middleware.JWTMiddleware(srv.GetUser))
-	srv.Router.POST("/api/user", middleware.JWTMiddleware(srv.PostUser))
+	srv.Router.GET("/api/user", srv.JWTMiddleware(srv.GetUser))
+	srv.Router.POST("/api/user", srv.JWTMiddleware(srv.PostUser))
 
 	return srv
+}
+
+// JWTMiddleware проверяет наличие и валидность JWT-токена
+func (srv *Server) JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tokenString := c.Request().Header.Get("Authorization")
+		if tokenString == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token is required"})
+		}
+
+		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, echo.ErrUnauthorized
+			}
+			return srv.jwtSecret, nil
+		})
+
+		if err != nil || !token.Valid {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
+		}
+
+		return next(c)
+	}
 }
 
 func (srv *Server) GetUser(c echo.Context) error {

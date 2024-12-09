@@ -3,10 +3,12 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"web-11/internal/auth/middleware"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 )
+
+var jwtSecret = []byte("123.456.789") // Секретный ключ, используемый для проверки токена
 
 type Server struct {
 	Address string
@@ -21,10 +23,32 @@ func NewServer(ip string, port int, usecase Usecase) *Server {
 		Usecase: usecase,
 	}
 
-	s.Router.GET("/count", middleware.JWTMiddleware(s.GetCounter))
-	s.Router.POST("/count", middleware.JWTMiddleware(s.UpdateCounter))
+	s.Router.GET("/count", s.JWTMiddleware(s.GetCounter))
+	s.Router.POST("/count", s.JWTMiddleware(s.UpdateCounter))
 
 	return s
+}
+
+func (s *Server) JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tokenString := c.Request().Header.Get("Authorization")
+		if tokenString == "" {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Token is required"})
+		}
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, echo.ErrUnauthorized
+			}
+			return jwtSecret, nil
+		})
+
+		if err != nil || !token.Valid {
+			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
+		}
+
+		return next(c)
+	}
 }
 
 func (s *Server) GetCounter(c echo.Context) error {

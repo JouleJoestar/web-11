@@ -12,8 +12,7 @@ import (
 )
 
 func main() {
-	// Считываем аргументы командной строки
-	configPath := flag.String("config-path", "../../configs/hello_example.yaml", "путь к файлу конфигурации") //fix пути к конфигу
+	configPath := flag.String("config-path", "../../configs/hello_example.yaml", "путь к файлу конфигурации")
 	flag.Parse()
 
 	cfg, err := config.LoadConfig(*configPath)
@@ -25,5 +24,6 @@ func main() {
 	use := usecase.NewUsecase(cfg.Usecase.DefaultMessage, prv)
 	srv := api.NewServer(cfg.IP, cfg.Port, cfg.API.MaxMessageSize, use)
 
+	log.Printf("Сервер запущен на %s\n", srv.Address)
 	srv.Run()
 }

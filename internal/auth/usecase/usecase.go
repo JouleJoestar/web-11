@@ -1,16 +1,35 @@
 package usecase
 
 import (
-	"web-11/internal/auth/middleware"
-	"web-11/internal/auth/provider"
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 type Usecase struct {
-	provider *provider.Provider
+	provider Provider
 }
 
-func NewUsecase(prv *provider.Provider) *Usecase {
-	return &Usecase{provider: prv}
+var jwtSecret = []byte("123.456.789")
+
+func NewUsecase(prv Provider) *Usecase {
+	return &Usecase{
+		provider: prv,
+	}
+}
+
+func GenerateJWT(username string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"exp":      time.Now().Add(time.Hour * 72).Unix(), // Токен будет действовать 72 часа
+	})
+
+	tokenString, err := token.SignedString(jwtSecret)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }
 
 func (uc *Usecase) Register(username, password string) error {
@@ -18,9 +37,10 @@ func (uc *Usecase) Register(username, password string) error {
 }
 
 func (uc *Usecase) Login(username, password string) (string, error) {
-	existingUser, err := uc.provider.GetUser(username)
+	username, err := uc.provider.GetUser(username)
 	if err != nil {
-		return "", err
+		return "", err // Возвращаем ошибку, если пользователь не найден
 	}
-	return middleware.GenerateJWT(existingUser)
+
+	return GenerateJWT(username) // Генерируем и возвращаем JWT
 }
