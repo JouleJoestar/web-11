@@ -1,5 +1,5 @@
 ip: "127.0.0.1"
-port: 3333
+port: 3332
 db:
   host: "localhost"
   port: 5432

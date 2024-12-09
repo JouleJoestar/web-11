@@ -3,50 +3,50 @@ package usecase
 import (
 	"fmt"
 	"net/http"
-	"web-11/internal/count/provider"
 
 	"github.com/labstack/echo/v4"
 )
 
-type Usecase struct {
-	provider *provider.Provider
+type usecase struct {
+	provider Provider
 }
 
-func NewUsecase(prv *provider.Provider) *Usecase {
-	return &Usecase{provider: prv}
+func NewUsecase(prv Provider) *usecase {
+	return &usecase{provider: prv}
 }
 
-func (u *Usecase) HandleCount(c echo.Context) error {
-	switch c.Request().Method {
-	case http.MethodGet:
-		counter, err := u.provider.GetCounter()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-
-		err = u.provider.UpdateCounter(1)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-
-		return c.String(http.StatusOK, fmt.Sprintf("%d", counter+1)) // Увеличиваем на 1 для ответа
-
-	case http.MethodPost:
-		var requestBody struct {
-			Count int `json:"count"`
-		}
-
-		if err := c.Bind(&requestBody); err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"error": "это не число"})
-		}
-
-		err := u.provider.UpdateCounter(requestBody.Count)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		}
-		return c.JSON(http.StatusOK, map[string]string{"message": "Success"})
-
-	default:
-		return c.JSON(http.StatusMethodNotAllowed, map[string]string{"error": "Неизвестный метод"})
+func (u *usecase) HandleGetCount() (int, error) {
+	counter, err := u.provider.GetCounter()
+	if err != nil {
+		return 0, err
 	}
+	return counter, nil
+}
+
+func (u *usecase) HandlePostCount(count int) error {
+	return u.provider.UpdateCounter(count)
+}
+
+func (u *usecase) HandleGetCountHTTP(c echo.Context) error {
+	counter, err := u.HandleGetCount()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.String(http.StatusOK, fmt.Sprintf("%d", counter))
+}
+
+func (u *usecase) HandlePostCountHTTP(c echo.Context) error {
+	var requestBody struct {
+		Count int `json:"count"`
+	}
+
+	if err := c.Bind(&requestBody); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "это не число"})
+	}
+
+	err := u.HandlePostCount(requestBody.Count)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, map[string]string{"message": "Success"})
 }

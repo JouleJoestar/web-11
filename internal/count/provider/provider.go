@@ -6,11 +6,11 @@ import (
 	"log"
 )
 
-type Provider struct {
+type provider struct {
 	db *sql.DB
 }
 
-func NewProvider(host string, port int, user, password, dbName string) *Provider {
+func NewProvider(host string, port int, user, password, dbName string) *provider {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbName)
 
@@ -19,12 +19,12 @@ func NewProvider(host string, port int, user, password, dbName string) *Provider
 		log.Fatal(err)
 	}
 
-	return &Provider{db: conn}
+	return &provider{db: conn}
 }
 
-func (dp *Provider) GetCounter() (int, error) {
+func (p *provider) GetCounter() (int, error) {
 	var counter int
-	row := dp.db.QueryRow("SELECT value FROM counter_table LIMIT 1")
+	row := p.db.QueryRow("SELECT value FROM counter_table LIMIT 1")
 	err := row.Scan(&counter)
 	if err != nil {
 		return 0, err
@@ -32,7 +32,7 @@ func (dp *Provider) GetCounter() (int, error) {
 	return counter, nil
 }
 
-func (dp *Provider) UpdateCounter(value int) error {
-	_, err := dp.db.Exec("UPDATE counter_table SET value = value + $1", value)
+func (p *provider) UpdateCounter(value int) error {
+	_, err := p.db.Exec("UPDATE counter_table SET value = value + $1", value)
 	return err
 }
