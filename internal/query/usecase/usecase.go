@@ -1,19 +1,35 @@
 package usecase
 
-import "web-11/internal/query/provider"
+import (
+	"errors"
+)
 
 type Usecase struct {
-	p *provider.Provider
+	defaultMsg string
+	p          Provider
 }
 
-func NewUsecase(p *provider.Provider) *Usecase {
-	return &Usecase{p: p}
+func NewUsecase(defaultMsg string, p Provider) *Usecase {
+	return &Usecase{
+		defaultMsg: defaultMsg,
+		p:          p,
+	}
 }
 
 func (u *Usecase) GetUser(name string) (string, error) {
-	return u.p.SelectUser(name)
+	user, err := u.p.SelectUser(name)
+	if err != nil {
+		return "", err
+	}
+	if user == "" {
+		return u.defaultMsg, nil
+	}
+	return user, nil
 }
 
 func (u *Usecase) CreateUser(name string) error {
-	return u.p.InsertUser(name)
+	if name == "" {
+		return errors.New("имя пользователя не может быть пустым")
+	}
+	return nil
 }

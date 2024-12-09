@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"web-11/internal/auth/middleware"
-	"web-11/internal/query/usecase"
 
 	"github.com/labstack/echo/v4"
 )
@@ -12,10 +11,10 @@ import (
 type Server struct {
 	Address string
 	Router  *echo.Echo
-	uc      *usecase.Usecase
+	uc      Usecase
 }
 
-func NewServer(ip string, port int, uc *usecase.Usecase) *Server {
+func NewServer(ip string, port int, uc Usecase) *Server {
 	e := echo.New()
 	srv := &Server{
 		Address: fmt.Sprintf("%s:%d", ip, port),
@@ -23,8 +22,8 @@ func NewServer(ip string, port int, uc *usecase.Usecase) *Server {
 		uc:      uc,
 	}
 
-	srv.Router.GET("/api/user", middleware.JWTMiddleware(srv.GetUser))          // Применяем middleware
-	srv.Router.POST("/api/user/create", middleware.JWTMiddleware(srv.PostUser)) // Применяем middleware
+	srv.Router.GET("/api/user", middleware.JWTMiddleware(srv.GetUser))
+	srv.Router.POST("/api/user", middleware.JWTMiddleware(srv.PostUser))
 
 	return srv
 }
