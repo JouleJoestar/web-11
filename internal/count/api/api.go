@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-var jwtSecret = []byte("123.456.789") // Секретный ключ, используемый для проверки токена
+var jwtSecret = []byte("123.456.789")
 
 type Server struct {
 	Address string
