@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"web-11/internal/auth/usecase"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 )
@@ -16,10 +14,10 @@ var jwtSecret = []byte("123.456.789")
 type Server struct {
 	Address string
 	Router  *echo.Echo
-	uc      *usecase.Usecase
+	uc      Usecase
 }
 
-func NewServer(ip string, port int, uc *usecase.Usecase) *Server {
+func NewServer(ip string, port int, uc Usecase) *Server {
 	e := echo.New()
 	srv := &Server{
 		Address: fmt.Sprintf("%s:%d", ip, port),
